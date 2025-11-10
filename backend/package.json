@@ -7,10 +7,13 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "build": "prisma generate",
+    "setup": "node setup.js",
     "vercel-build": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "node prisma/seed.js"
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:seed": "node prisma/seed.js",
+    "test:cron": "node -e \"import('./test-cron.js')\""
   },
   "prisma": {
     "seed": "node prisma/seed.js"

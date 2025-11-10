@@ -52,23 +52,26 @@ export const updatePortfolioValues = async () => {
         0
       );
 
-      // Calculate total invested in holdings
+      // Calculate total invested in current holdings
       const totalInvested = user.holdings.reduce(
         (sum, holding) => sum + (holding.quantity * holding.averagePrice),
         0
       );
 
-      // Portfolio value = cash + holdings value
-      const portfolioValue = user.balance + holdingsValue;
+      // Calculate unrealized profit/loss (from current holdings)
+      const unrealizedPL = holdingsValue - totalInvested;
+      
+      // Total profit/loss = realized (from past sales) + unrealized (current holdings)
+      const totalProfitLoss = user.realizedProfitLoss + unrealizedPL;
 
-      // Profit/Loss = current holdings value - amount invested in holdings
-      const profitLoss = holdingsValue - totalInvested;
+      // Portfolio value = cash balance + current holdings value
+      const portfolioValue = user.balance + holdingsValue;
 
       await prisma.user.update({
         where: { id: user.id },
         data: {
           portfolioValue,
-          profitLoss,
+          profitLoss: totalProfitLoss,
         },
       });
     }
