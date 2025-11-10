@@ -3,6 +3,20 @@ import { simulateStockPrice } from './stockApi.js';
 
 const prisma = new PrismaClient();
 
+// Simulate small price fluctuation (0.1% per minute)
+const simulateMinuteFluctuation = (currentPrice) => {
+  // Random fluctuation between -0.1% to +0.1%
+  const changePercent = (Math.random() - 0.5) * 0.2; // -0.1% to +0.1%
+  const newPrice = currentPrice * (1 + changePercent / 100);
+  const change = newPrice - currentPrice;
+  
+  return {
+    price: parseFloat(newPrice.toFixed(2)),
+    change: parseFloat(change.toFixed(2)),
+    changePercent: parseFloat(changePercent.toFixed(4)),
+  };
+};
+
 // Update all stock prices
 export const updateStockPrices = async () => {
   try {
@@ -10,31 +24,49 @@ export const updateStockPrices = async () => {
 
     if (stocks.length === 0) {
       console.log('⚠️ No stocks found in database');
-      return;
+      return 0;
     }
 
+    let updatedCount = 0;
+    const updateTime = new Date();
+
     for (const stock of stocks) {
-      const { price, change, changePercent } = simulateStockPrice(stock.currentPrice);
+      // Simulate 0.1% fluctuation per minute
+      const { price, change, changePercent } = simulateMinuteFluctuation(stock.currentPrice);
+
+      // Calculate change from opening price
+      const changeFromOpen = price - stock.openPrice;
+      const changePercentFromOpen = stock.openPrice > 0 
+        ? ((changeFromOpen / stock.openPrice) * 100) 
+        : 0;
 
       await prisma.stock.update({
         where: { id: stock.id },
         data: {
           currentPrice: price,
-          change: change,
-          changePercent: changePercent,
+          change: changeFromOpen,
+          changePercent: changePercentFromOpen,
+          high: Math.max(stock.high, price),
+          low: Math.min(stock.low, price),
+          lastUpdated: updateTime,
         },
       });
+
+      updatedCount++;
     }
 
-    console.log(`✅ Stocks updated: ${stocks.length}`);
+    console.log(`✅ Stocks updated: ${updatedCount} (${updateTime.toLocaleTimeString()})`);
+    return updatedCount;
   } catch (error) {
     console.error('❌ Update stock prices error:', error.message);
+    throw error;
   }
 };
 
 // Update portfolio values for all users
 export const updatePortfolioValues = async () => {
   try {
+    const updateTime = new Date();
     const users = await prisma.user.findMany({
       include: {
         holdings: {
@@ -44,6 +76,13 @@ export const updatePortfolioValues = async () => {
         },
       },
     });
+
+    if (users.length === 0) {
+      console.log('⚠️ No users found in database');
+      return 0;
+    }
+
+    let updatedCount = 0;
 
     for (const user of users) {
       // Calculate current holdings value
@@ -74,29 +113,37 @@ export const updatePortfolioValues = async () => {
           profitLoss: totalProfitLoss,
         },
       });
+
+      updatedCount++;
     }
 
-    console.log(`✅ Portfolio values updated for ${users.length} users`);
+    console.log(`✅ Portfolios updated: ${updatedCount} users (${updateTime.toLocaleTimeString()})`);
+    return updatedCount;
   } catch (error) {
     console.error('❌ Update portfolio values error:', error.message);
+    throw error;
   }
 };
 
 // Start automatic stock price updates
 export const startStockTracker = () => {
-  console.log('🔄 Stock tracker started');
+  console.log('� Stock tracker initialized - Updates every 30 seconds');
+  console.log('📊 Each update applies 0.1% random fluctuation to stock prices');
   
   // Update immediately on startup
-  updateStockPrices().then(() => {
-    updatePortfolioValues();
-  });
+  updateStockPrices()
+    .then(() => updatePortfolioValues())
+    .catch(err => console.error('❌ Initial update failed:', err.message));
   
-  // Update stock prices every 30 seconds
-  setInterval(() => {
-    updateStockPrices().then(() => {
-      updatePortfolioValues();
-    });
+  // Update stock prices every 30 seconds (in production, use Vercel Cron for 1 minute)
+  const intervalId = setInterval(() => {
+    updateStockPrices()
+      .then(() => updatePortfolioValues())
+      .catch(err => console.error('❌ Periodic update failed:', err.message));
   }, 30000);
+  
+  // Return interval ID for cleanup if needed
+  return intervalId;
 };
 
 export default {
