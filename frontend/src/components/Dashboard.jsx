@@ -71,9 +71,9 @@ const Dashboard = () => {
   };
 
   // Calculate portfolio stats
-  const totalInvested = user?.portfolioValue - user?.balance || 0;
+  const initialCapital = 500000; // Starting capital for all users
   const profitLoss = user?.profitLoss || 0;
-  const profitLossPercent = totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
+  const profitLossPercent = initialCapital > 0 ? (profitLoss / initialCapital) * 100 : 0;
 
   // Market stats
   const gainers = stocks.filter(s => s.changePercent > 0).length;
@@ -128,7 +128,7 @@ const Dashboard = () => {
           >
             <StatLabel>Profit/Loss</StatLabel>
             <StatNumber color={profitLoss >= 0 ? 'success.500' : 'error.500'}>
-              {profitLoss >= 0 ? '+' : ''}₹{Math.abs(profitLoss).toLocaleString('en-IN')}
+              {profitLoss >= 0 ? '+' : ''}₹{profitLoss.toLocaleString('en-IN')}
             </StatNumber>
             <StatHelpText>
               <StatArrow type={profitLoss >= 0 ? 'increase' : 'decrease'} />

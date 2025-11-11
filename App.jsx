@@ -87,9 +87,9 @@ function AppContent() {
         <Route
           path="/leaderboard"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Leaderboard />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
         <Route

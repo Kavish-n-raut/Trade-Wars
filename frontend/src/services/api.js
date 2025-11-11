@@ -90,6 +90,7 @@ export const adminAPI = {
   getUsers: () => api.get('/admin/users'),
   updateUser: (id, userData) => api.put(`/admin/users/${id}`, userData),
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
+  adjustUserBalance: (id, data) => api.post(`/admin/users/${id}/adjust-balance`, data),
   getStats: () => api.get('/admin/stats'),
   getSectors: () => api.get('/admin/sectors'),
   adjustSectorPrices: (data) => api.post('/admin/adjust-sector-prices', data),

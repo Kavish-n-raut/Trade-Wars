@@ -200,4 +200,93 @@ router.get('/sectors', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Adjust user balance (admin only) - Add or deduct money
+router.post('/users/:id/adjust-balance', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { amount, reason } = req.body;
+
+    if (!amount || isNaN(parseFloat(amount))) {
+      return res.status(400).json({ error: 'Valid amount is required' });
+    }
+
+    const adjustmentAmount = parseFloat(amount);
+
+    // Get current user
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        holdings: {
+          include: {
+            stock: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Calculate new balance
+    const newBalance = user.balance + adjustmentAmount;
+
+    if (newBalance < 0) {
+      return res.status(400).json({ 
+        error: 'Cannot deduct more than available balance',
+        currentBalance: user.balance,
+        attemptedDeduction: Math.abs(adjustmentAmount)
+      });
+    }
+
+    // Calculate holdings value
+    const holdingsValue = user.holdings.reduce(
+      (sum, holding) => sum + (holding.quantity * holding.stock.currentPrice),
+      0
+    );
+
+    // Calculate new portfolio value
+    const newPortfolioValue = newBalance + holdingsValue;
+
+    // Update user balance and portfolio value
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        balance: newBalance,
+        portfolioValue: newPortfolioValue,
+      },
+      select: {
+        id: true,
+        username: true,
+        balance: true,
+        portfolioValue: true,
+        profitLoss: true,
+        realizedProfitLoss: true,
+      },
+    });
+
+    console.log(
+      `✅ Admin adjusted balance for user ${user.username}: ` +
+      `${adjustmentAmount >= 0 ? '+' : ''}₹${adjustmentAmount.toFixed(2)} ` +
+      `(New balance: ₹${newBalance.toFixed(2)})` +
+      (reason ? ` - Reason: ${reason}` : '')
+    );
+
+    res.json({
+      success: true,
+      message: `Successfully ${adjustmentAmount >= 0 ? 'added' : 'deducted'} ₹${Math.abs(adjustmentAmount).toFixed(2)} ${adjustmentAmount >= 0 ? 'to' : 'from'} ${user.username}'s account`,
+      user: updatedUser,
+      adjustment: {
+        amount: adjustmentAmount,
+        previousBalance: user.balance,
+        newBalance: newBalance,
+        reason: reason || 'No reason provided',
+      },
+    });
+  } catch (error) {
+    console.error('❌ Adjust balance error:', error);
+    res.status(500).json({ error: 'Failed to adjust balance: ' + error.message });
+  }
+});
+
 export default router;
