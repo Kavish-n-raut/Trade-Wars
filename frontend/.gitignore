@@ -4,7 +4,7 @@ node_modules/
 # Environment
 .env
 .env.local
-.env.production
+# .env.production is committed for Vercel deployment
 
 # Build
 dist/
