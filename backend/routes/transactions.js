@@ -32,6 +32,16 @@ router.post('/buy', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Stock not found' });
     }
 
+    // Check if circuit breaker is tripped
+    if (stock.circuitTripped) {
+      return res.status(403).json({ 
+        error: `Trading halted: ${stock.symbol} has hit the ${stock.circuitType} circuit (±25% limit from open price)`,
+        circuitType: stock.circuitType,
+        openPrice: stock.openPrice,
+        currentPrice: stock.currentPrice,
+      });
+    }
+
     const totalAmount = price * quantity;
 
     // Get user
@@ -139,6 +149,16 @@ router.post('/sell', authenticateToken, async (req, res) => {
 
     if (!stock) {
       return res.status(404).json({ error: 'Stock not found' });
+    }
+
+    // Check if circuit breaker is tripped
+    if (stock.circuitTripped) {
+      return res.status(403).json({ 
+        error: `Trading halted: ${stock.symbol} has hit the ${stock.circuitType} circuit (±25% limit from open price)`,
+        circuitType: stock.circuitType,
+        openPrice: stock.openPrice,
+        currentPrice: stock.currentPrice,
+      });
     }
 
     // Check holding

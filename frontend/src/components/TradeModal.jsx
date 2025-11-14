@@ -159,6 +159,35 @@ const TradeModal = ({ isOpen, onClose, stock, defaultTab = 0 }) => {
 
         <ModalBody pb={6}>
           <VStack spacing={6} align="stretch">
+            {/* Circuit Breaker Warning */}
+            {stock?.circuitTripped && (
+              <Box
+                p={4}
+                bg="rgba(255, 0, 0, 0.1)"
+                borderRadius="md"
+                border="2px solid"
+                borderColor="red.500"
+              >
+                <VStack align="start" spacing={2}>
+                  <HStack>
+                    <Text fontSize="lg" fontWeight="bold" color="red.400">
+                      🔴 TRADING HALTED
+                    </Text>
+                  </HStack>
+                  <Text fontSize="sm" color="gray.300">
+                    {stock.circuitType} Circuit Breaker Triggered (±25% limit)
+                  </Text>
+                  <HStack spacing={4} fontSize="sm">
+                    <Text>Open: ₹{stock.openPrice?.toFixed(2)}</Text>
+                    <Text>Current: ₹{stock.currentPrice?.toFixed(2)}</Text>
+                    <Text color={stock.changePercent >= 0 ? 'green.400' : 'red.400'}>
+                      {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent?.toFixed(2)}%
+                    </Text>
+                  </HStack>
+                </VStack>
+              </Box>
+            )}
+
             {/* Current Price */}
             <Box
               p={4}
@@ -239,9 +268,9 @@ const TradeModal = ({ isOpen, onClose, stock, defaultTab = 0 }) => {
                       color="white"
                       onClick={() => handleTrade('BUY')}
                       isLoading={loading}
-                      isDisabled={totalAmount > user?.balance}
+                      isDisabled={totalAmount > user?.balance || stock?.circuitTripped}
                     >
-                      Buy {quantity} Shares
+                      {stock?.circuitTripped ? 'Trading Halted' : `Buy ${quantity} Shares`}
                     </Button>
                   </VStack>
                 </TabPanel>
@@ -268,6 +297,7 @@ const TradeModal = ({ isOpen, onClose, stock, defaultTab = 0 }) => {
                             setQuantity(1);
                           }
                         }}
+                        isDisabled={stock?.circuitTripped}
                       />
                     </FormControl>
 
@@ -341,9 +371,9 @@ const TradeModal = ({ isOpen, onClose, stock, defaultTab = 0 }) => {
                       }}
                       onClick={() => handleTrade('SELL')}
                       isLoading={loading}
-                      isDisabled={!holding || quantity > holding.quantity}
+                      isDisabled={!holding || quantity > holding.quantity || stock?.circuitTripped}
                     >
-                      Sell {quantity} Shares
+                      {stock?.circuitTripped ? 'Trading Halted' : `Sell ${quantity} Shares`}
                     </Button>
                     
                     {!holding && (
@@ -354,6 +384,11 @@ const TradeModal = ({ isOpen, onClose, stock, defaultTab = 0 }) => {
                     {holding && quantity > holding.quantity && (
                       <Text fontSize="sm" color="error.500" textAlign="center">
                         You only own {holding.quantity} shares
+                      </Text>
+                    )}
+                    {stock?.circuitTripped && (
+                      <Text fontSize="sm" color="red.400" textAlign="center" fontWeight="bold">
+                        ⚠️ Trading is currently halted due to circuit breaker
                       </Text>
                     )}
                   </VStack>
