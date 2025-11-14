@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "realizedProfitLoss" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Transaction" ADD COLUMN     "profitLoss" DOUBLE PRECISION NOT NULL DEFAULT 0;
