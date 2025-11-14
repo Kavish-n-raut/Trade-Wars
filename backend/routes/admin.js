@@ -1,10 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import nifty50Data from '../prisma/nifty50.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Get all users (admin only)
 router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
@@ -158,6 +157,56 @@ router.delete('/users/:id', authenticateToken, requireAdmin, async (req, res) =>
   } catch (error) {
     console.error('Delete user error:', error);
     res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// Delete stock forcefully (admin only) - removes stock even if users hold it
+router.delete('/stocks/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const stockId = parseInt(req.params.id);
+    
+    // Get stock details before deletion
+    const stock = await prisma.stock.findUnique({
+      where: { id: stockId },
+      select: {
+        symbol: true,
+        name: true,
+      }
+    });
+
+    if (!stock) {
+      return res.status(404).json({ error: 'Stock not found' });
+    }
+
+    // Delete all transactions related to this stock
+    const deletedTransactions = await prisma.transaction.deleteMany({
+      where: { stockId: stockId },
+    });
+
+    // Delete all holdings related to this stock
+    const deletedHoldings = await prisma.holding.deleteMany({
+      where: { stockId: stockId },
+    });
+
+    // Delete the stock itself
+    await prisma.stock.delete({
+      where: { id: stockId },
+    });
+
+    console.log(
+      `✅ Admin forcefully deleted stock ${stock.symbol} (${stock.name}): ` +
+      `${deletedHoldings.count} holdings removed, ${deletedTransactions.count} transactions removed`
+    );
+
+    res.json({ 
+      message: `Stock ${stock.symbol} deleted successfully`,
+      stock: stock,
+      deletedHoldings: deletedHoldings.count,
+      deletedTransactions: deletedTransactions.count,
+    });
+  } catch (error) {
+    console.error('❌ Delete stock error:', error);
+    res.status(500).json({ error: 'Failed to delete stock: ' + error.message });
   }
 });
 
@@ -355,6 +404,147 @@ router.post('/users/:id/adjust-balance', authenticateToken, requireAdmin, async 
   }
 });
 
+// Set user profit/loss value (admin only)
+router.post('/users/:id/set-profit', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { profitLoss, reason } = req.body;
+
+    if (profitLoss === undefined || isNaN(parseFloat(profitLoss))) {
+      return res.status(400).json({ error: 'Valid profit/loss value is required' });
+    }
+
+    const newProfitLoss = parseFloat(profitLoss);
+
+    // Get current user
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        profitLoss: true,
+        realizedProfitLoss: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const previousProfitLoss = user.profitLoss;
+
+    // Update user profit/loss
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        profitLoss: newProfitLoss,
+      },
+      select: {
+        id: true,
+        username: true,
+        balance: true,
+        portfolioValue: true,
+        profitLoss: true,
+        realizedProfitLoss: true,
+      },
+    });
+
+    console.log(
+      `✅ Admin set profit/loss for user ${user.username}: ` +
+      `₹${newProfitLoss.toFixed(2)} (Previous: ₹${previousProfitLoss.toFixed(2)})` +
+      (reason ? ` - Reason: ${reason}` : '')
+    );
+
+    res.json({
+      success: true,
+      message: `Successfully set profit/loss to ₹${newProfitLoss.toFixed(2)} for ${user.username}'s account`,
+      user: updatedUser,
+      adjustment: {
+        previousProfitLoss: previousProfitLoss,
+        newProfitLoss: newProfitLoss,
+        change: newProfitLoss - previousProfitLoss,
+        reason: reason || 'No reason provided',
+      },
+    });
+  } catch (error) {
+    console.error('❌ Set profit/loss error:', error);
+    res.status(500).json({ error: 'Failed to set profit/loss: ' + error.message });
+  }
+});
+
+// Set user portfolio value (admin only)
+router.post('/users/:id/set-portfolio', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { portfolioValue, reason } = req.body;
+
+    if (portfolioValue === undefined || isNaN(parseFloat(portfolioValue))) {
+      return res.status(400).json({ error: 'Valid portfolio value is required' });
+    }
+
+    const newPortfolioValue = parseFloat(portfolioValue);
+
+    if (newPortfolioValue < 0) {
+      return res.status(400).json({ error: 'Portfolio value cannot be negative' });
+    }
+
+    // Get current user
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        portfolioValue: true,
+        balance: true,
+        profitLoss: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const previousPortfolioValue = user.portfolioValue;
+
+    // Update user portfolio value
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        portfolioValue: newPortfolioValue,
+      },
+      select: {
+        id: true,
+        username: true,
+        balance: true,
+        portfolioValue: true,
+        profitLoss: true,
+        realizedProfitLoss: true,
+      },
+    });
+
+    console.log(
+      `✅ Admin set portfolio value for user ${user.username}: ` +
+      `₹${newPortfolioValue.toFixed(2)} (Previous: ₹${previousPortfolioValue.toFixed(2)})` +
+      (reason ? ` - Reason: ${reason}` : '')
+    );
+
+    res.json({
+      success: true,
+      message: `Successfully set portfolio value to ₹${newPortfolioValue.toFixed(2)} for ${user.username}'s account`,
+      user: updatedUser,
+      adjustment: {
+        previousPortfolioValue: previousPortfolioValue,
+        newPortfolioValue: newPortfolioValue,
+        change: newPortfolioValue - previousPortfolioValue,
+        reason: reason || 'No reason provided',
+      },
+    });
+  } catch (error) {
+    console.error('❌ Set portfolio value error:', error);
+    res.status(500).json({ error: 'Failed to set portfolio value: ' + error.message });
+  }
+});
+
 // Seed database with 100 stocks (admin only)
 router.post('/seed-stocks', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -366,6 +556,26 @@ router.post('/seed-stocks', authenticateToken, requireAdmin, async (req, res) =>
     await prisma.stock.deleteMany({});
 
     console.log('✅ Cleared existing stocks, holdings, and transactions (users preserved)');
+
+    // Reset all user balances, portfolio values, and profit/loss to ₹5,00,000
+    const users = await prisma.user.findMany();
+    const resetAmount = 500000;
+    
+    await Promise.all(
+      users.map(user => 
+        prisma.user.update({
+          where: { id: user.id },
+          data: {
+            balance: resetAmount,
+            portfolioValue: resetAmount,
+            profitLoss: 0,
+            realizedProfitLoss: 0,
+          }
+        })
+      )
+    );
+    
+    console.log(`✅ Reset ${users.length} user accounts to ₹${resetAmount.toLocaleString('en-IN')}`);
 
     // Create all 100 stocks
     console.log(`📊 Creating ${nifty50Data.length} stocks...`);
@@ -402,9 +612,11 @@ router.post('/seed-stocks', authenticateToken, requireAdmin, async (req, res) =>
 
     res.json({
       success: true,
-      message: `Successfully seeded ${stocks.length} stocks across ${Object.keys(sectorCounts).length} sectors`,
+      message: `Successfully seeded ${stocks.length} stocks across ${Object.keys(sectorCounts).length} sectors and reset ${users.length} user accounts`,
       totalStocks: stocks.length,
       sectors: Object.keys(sectorCounts).length,
+      usersReset: users.length,
+      resetAmount: resetAmount,
       distribution: sectorCounts,
     });
   } catch (error) {
