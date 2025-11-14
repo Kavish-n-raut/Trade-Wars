@@ -1,9 +1,8 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { prisma } from '../lib/prisma.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Get leaderboard (admin only)
 router.get('/', authenticateToken, requireAdmin, async (req, res) => {

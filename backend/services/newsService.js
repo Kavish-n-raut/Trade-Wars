@@ -1,7 +1,5 @@
 import axios from 'axios';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 
 // Fetch news only for stocks in our database - Financial sector focused
 export const fetchGeneralMarketNews = async () => {

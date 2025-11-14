@@ -1,10 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import { fetchNewsForStock } from '../services/newsService.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Get all stocks
 router.get('/', async (req, res) => {

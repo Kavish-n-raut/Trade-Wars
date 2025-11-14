@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { simulateStockPrice } from './stockApi.js';
-
-const prisma = new PrismaClient();
 
 // Simulate price fluctuation (1% per minute - ONLY NEGATIVE)
 const simulateMinuteFluctuation = (currentPrice) => {
