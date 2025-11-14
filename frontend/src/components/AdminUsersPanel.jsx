@@ -49,6 +49,8 @@ const AdminUsersPanel = () => {
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [userPortfolio, setUserPortfolio] = useState(null);
   const [loadingPortfolio, setLoadingPortfolio] = useState(false);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { 
     isOpen: isPortfolioOpen, 
@@ -177,15 +179,62 @@ const AdminUsersPanel = () => {
     );
   }
 
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const sortedUsers = [...users].sort((a, b) => {
+    let aVal = a[sortBy] || 0;
+    let bVal = b[sortBy] || 0;
+    
+    if (sortOrder === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+
   return (
     <Box>
       <HStack justify="space-between" mb={4}>
         <Text fontSize="lg" fontWeight="bold">
           Total Users: {users.length}
         </Text>
-        <Button size="sm" onClick={fetchUsers}>
-          🔄 Refresh
-        </Button>
+        <HStack spacing={2}>
+          <Text fontSize="sm" color="gray.400">Sort by:</Text>
+          <Button
+            size="sm"
+            variant={sortBy === 'balance' ? 'solid' : 'outline'}
+            colorScheme={sortBy === 'balance' ? 'cyan' : 'gray'}
+            onClick={() => handleSort('balance')}
+          >
+            💰 Balance {sortBy === 'balance' && (sortOrder === 'desc' ? '↓' : '↑')}
+          </Button>
+          <Button
+            size="sm"
+            variant={sortBy === 'portfolioValue' ? 'solid' : 'outline'}
+            colorScheme={sortBy === 'portfolioValue' ? 'purple' : 'gray'}
+            onClick={() => handleSort('portfolioValue')}
+          >
+            📊 Portfolio {sortBy === 'portfolioValue' && (sortOrder === 'desc' ? '↓' : '↑')}
+          </Button>
+          <Button
+            size="sm"
+            variant={sortBy === 'profitLoss' ? 'solid' : 'outline'}
+            colorScheme={sortBy === 'profitLoss' ? 'green' : 'gray'}
+            onClick={() => handleSort('profitLoss')}
+          >
+            💹 P/L {sortBy === 'profitLoss' && (sortOrder === 'desc' ? '↓' : '↑')}
+          </Button>
+          <Button size="sm" onClick={fetchUsers}>
+            🔄 Refresh
+          </Button>
+        </HStack>
       </HStack>
 
       <Box overflowX="auto">
@@ -204,7 +253,7 @@ const AdminUsersPanel = () => {
             </Tr>
           </Thead>
           <Tbody>
-            {users.map((user) => (
+            {sortedUsers.map((user) => (
               <Tr key={user.id}>
                 <Td>{user.id}</Td>
                 <Td fontWeight="bold">{user.username}</Td>
