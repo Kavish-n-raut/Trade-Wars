@@ -32,6 +32,9 @@ import {
   Textarea,
   VStack,
   useDisclosure,
+  Stat,
+  StatLabel,
+  StatNumber,
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon, ViewIcon } from '@chakra-ui/icons';
 import { adminAPI } from '../services/api';
