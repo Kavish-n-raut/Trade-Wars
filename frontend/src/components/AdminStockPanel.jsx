@@ -27,7 +27,7 @@ import {
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
 import { useStocks } from '../context/StockContext';
-import { stockAPI, adminAPI } from '../services/api';
+import { stockAPI } from '../services/api';
 import './AdminStockPanel.css';
 
 const AdminStockPanel = () => {
@@ -145,16 +145,16 @@ const AdminStockPanel = () => {
   };
 
   const handleDelete = async (id, symbol) => {
-    if (!window.confirm(`⚠️ FORCE DELETE: This will permanently delete ${symbol} and remove it from ALL user portfolios.\n\nThis action cannot be undone. Continue?`)) return;
+    if (!window.confirm(`Are you sure you want to delete ${symbol}?\n\nNote: This will fail if users hold shares of this stock or if there are transactions.`)) return;
 
     try {
       setLoading(true);
-      const response = await adminAPI.deleteStock(id);
+      await stockAPI.delete(id);
       toast({
-        title: 'Stock Forcefully Deleted ✅',
-        description: `${symbol} deleted: ${response.data.deletedHoldings} holdings removed, ${response.data.deletedTransactions} transactions removed`,
+        title: 'Deleted ✅',
+        description: `${symbol} deleted successfully`,
         status: 'success',
-        duration: 5000,
+        duration: 3000,
       });
       await refreshStocks();
     } catch (error) {

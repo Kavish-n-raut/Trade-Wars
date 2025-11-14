@@ -127,7 +127,6 @@ const StockList = ({ onSelectStock }) => {
               <Th isNumeric>Current Price</Th>
               <Th isNumeric>Change</Th>
               <Th isNumeric>Change %</Th>
-              <Th>Status</Th>
               <Th>Action</Th>
             </Tr>
           </Thead>
@@ -137,7 +136,6 @@ const StockList = ({ onSelectStock }) => {
                 key={stock.id}
                 className="stock-row"
                 cursor="pointer"
-                opacity={stock.circuitTripped ? 0.6 : 1}
               >
                 <Td fontWeight="bold" className="stock-symbol">
                   {stock.symbol}
@@ -158,25 +156,13 @@ const StockList = ({ onSelectStock }) => {
                   {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent?.toFixed(2) || '0.00'}%
                 </Td>
                 <Td>
-                  {stock.circuitTripped ? (
-                    <Badge colorScheme="red" fontSize="xs">
-                      🔴 {stock.circuitType} CIRCUIT
-                    </Badge>
-                  ) : (
-                    <Badge colorScheme="green" fontSize="xs">
-                      ✅ ACTIVE
-                    </Badge>
-                  )}
-                </Td>
-                <Td>
                   <Button
                     size="sm"
                     colorScheme="brand"
                     className="trade-button"
                     onClick={() => onSelectStock && onSelectStock(stock)}
-                    isDisabled={stock.circuitTripped}
                   >
-                    {stock.circuitTripped ? 'Halted' : 'Trade'}
+                    Trade
                   </Button>
                 </Td>
               </Tr>

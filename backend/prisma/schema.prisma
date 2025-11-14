@@ -37,8 +37,6 @@ model Stock {
   volume        Int           @default(0)
   priceOffset   Float         @default(0)
   isTracking    Boolean       @default(true)
-  circuitTripped Boolean       @default(false)
-  circuitType   String?       @default("")
   lastUpdated   DateTime      @default(now())
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

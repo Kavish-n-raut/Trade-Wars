@@ -103,14 +103,11 @@ export const adminAPI = {
   updateUser: (id, userData) => api.put(`/admin/users/${id}`, userData),
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
   adjustUserBalance: (id, data) => api.post(`/admin/users/${id}/adjust-balance`, data),
-  setUserProfit: (id, data) => api.post(`/admin/users/${id}/set-profit`, data),
-  setUserPortfolio: (id, data) => api.post(`/admin/users/${id}/set-portfolio`, data),
   getStats: () => api.get('/admin/stats'),
   getSectors: () => api.get('/admin/sectors'),
   adjustSectorPrices: (data) => api.post('/admin/adjust-sector-prices', data),
   getTransactions: () => api.get('/admin/transactions'),
   getUserPortfolio: (id) => api.get(`/admin/users/${id}/portfolio`),
-  deleteStock: (id) => api.delete(`/admin/stocks/${id}`),
 };
 
 export default api;
