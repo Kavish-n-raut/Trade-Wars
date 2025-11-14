@@ -38,42 +38,14 @@ export const updateStockPrices = async () => {
         ? ((changeFromOpen / stock.openPrice) * 100) 
         : 0;
 
-      // Check circuit breaker conditions (±25% from open price)
-      const upperCircuitLimit = stock.openPrice * 1.25; // +25%
-      const lowerCircuitLimit = stock.openPrice * 0.75; // -25%
-      
-      let circuitTripped = false;
-      let circuitType = '';
-      let finalPrice = price;
-
-      if (price >= upperCircuitLimit) {
-        circuitTripped = true;
-        circuitType = 'UPPER';
-        finalPrice = upperCircuitLimit;
-        console.log(`🔴 UPPER CIRCUIT: ${stock.symbol} hit +25% limit at ₹${upperCircuitLimit.toFixed(2)}`);
-      } else if (price <= lowerCircuitLimit) {
-        circuitTripped = true;
-        circuitType = 'LOWER';
-        finalPrice = lowerCircuitLimit;
-        console.log(`🔴 LOWER CIRCUIT: ${stock.symbol} hit -25% limit at ₹${lowerCircuitLimit.toFixed(2)}`);
-      }
-
-      // Recalculate change with final price
-      const finalChangeFromOpen = finalPrice - stock.openPrice;
-      const finalChangePercentFromOpen = stock.openPrice > 0 
-        ? ((finalChangeFromOpen / stock.openPrice) * 100) 
-        : 0;
-
       await prisma.stock.update({
         where: { id: stock.id },
         data: {
-          currentPrice: finalPrice,
-          change: finalChangeFromOpen,
-          changePercent: finalChangePercentFromOpen,
-          high: Math.max(stock.high, finalPrice),
-          low: Math.min(stock.low, finalPrice),
-          circuitTripped: circuitTripped,
-          circuitType: circuitType,
+          currentPrice: price,
+          change: changeFromOpen,
+          changePercent: changePercentFromOpen,
+          high: Math.max(stock.high, price),
+          low: Math.min(stock.low, price),
           lastUpdated: updateTime,
         },
       });
