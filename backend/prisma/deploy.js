@@ -1,10 +1,10 @@
 // Build-time database step for Vercel.
 //
-// Uses `prisma db push` (schema-driven) rather than `migrate deploy`: the
-// committed migration history under prisma/migrations was generated for SQLite
-// (INTEGER PRIMARY KEY AUTOINCREMENT, REAL, ...) and is not valid Postgres.
-// schema.prisma itself is valid Postgres, so db push builds the schema straight
-// from it. Then runs the idempotent seed.
+// Uses `prisma db push` (schema-driven) rather than `migrate deploy`: this
+// project has no usable migration history (the old prisma/migrations folder was
+// SQLite-only SQL and has been removed). schema.prisma is the source of truth;
+// db push builds the Postgres schema straight from it. Then runs the idempotent
+// seed.
 //
 // Both steps run against the DIRECT (unpooled) connection — Neon's pooled
 // endpoint (what DATABASE_URL points at for runtime) uses PgBouncer and can't
