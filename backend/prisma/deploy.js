@@ -1,8 +1,14 @@
 // Build-time database step for Vercel.
 //
-// Runs `prisma migrate deploy` and the idempotent seed against the DIRECT
-// (unpooled) connection. Neon's pooled endpoint (what DATABASE_URL points at for
-// runtime) uses PgBouncer and can't hold the advisory lock migrations need.
+// Uses `prisma db push` (schema-driven) rather than `migrate deploy`: the
+// committed migration history under prisma/migrations was generated for SQLite
+// (INTEGER PRIMARY KEY AUTOINCREMENT, REAL, ...) and is not valid Postgres.
+// schema.prisma itself is valid Postgres, so db push builds the schema straight
+// from it. Then runs the idempotent seed.
+//
+// Both steps run against the DIRECT (unpooled) connection — Neon's pooled
+// endpoint (what DATABASE_URL points at for runtime) uses PgBouncer and can't
+// hold the advisory lock DDL needs.
 import { execSync } from 'node:child_process';
 
 const directUrl =
@@ -21,6 +27,6 @@ const run = (cmd) => {
   execSync(cmd, { stdio: 'inherit', env });
 };
 
-run('npx prisma migrate deploy');
+run('npx prisma db push --skip-generate --accept-data-loss');
 run('node backend/prisma/seed-prod.js');
 console.log('\n✓ Database ready.');
