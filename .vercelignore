@@ -1,0 +1,14 @@
+# Not needed by the build or the serverless bundle.
+*.md
+backend/*.md
+frontend/dist
+**/node_modules
+backend/test-*.js
+backend/verify-*.js
+backend/view-transactions.js
+backend/get-users.js
+backend/check-news.js
+backend/reset-password.js
+.github
+Folder Structure.ini
+docker-compose.yml

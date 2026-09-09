@@ -10,6 +10,7 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
+// Cache on the global across module reloads (local dev) AND across warm
+// serverless invocations on Vercel — a fresh client per invocation would
+// exhaust the Postgres connection limit.
+globalForPrisma.prisma = prisma;

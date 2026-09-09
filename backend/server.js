@@ -18,10 +18,17 @@ const PORT = process.env.PORT || 3000;
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // Middleware
+// In the Vercel deployment the frontend is served from the same origin as this
+// API (/api/* is rewritten to the function), so requests are not cross-origin.
+// We still enable CORS permissively so custom domains and preview URLs work;
+// auth is a bearer token, not a cookie. Set CORS_ORIGIN (comma-separated) to
+// lock it down to an explicit allowlist.
 app.use(cors({
-  origin: isDevelopment 
+  origin: isDevelopment
     ? ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']
-    : ['https://tradewars.ecellrvitm.in', 'https://trade-wars-frontend.vercel.app'],
+    : (process.env.CORS_ORIGIN
+        ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
+        : true),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
